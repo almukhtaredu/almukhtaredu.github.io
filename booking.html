@@ -80,14 +80,14 @@
             </div>
             <div class="input-group">
                 <label>طريقة الحضور</label>
-                <select name="type">
+                <select name="type" id="typeSelect">
                     <option value="أونلاين">أونلاين</option>
                     <option value="سنتر">سنتر</option>
                 </select>
             </div>
-            <div class="input-group">
+            <div class="input-group" id="areaGroup">
                 <label>المنطقة</label>
-                <select name="area">
+                <select name="area" id="areaSelect">
                     <option value="المندرة">المندرة</option>
                     <option value="سيدي بشر بحري">سيدي بشر بحري</option>
                     <option value="أرض فضالي">أرض فضالي</option>
@@ -131,7 +131,7 @@
                 // أكتر من مادة متاحة: اختيار متعدد بدون تكرار بيانات الطالب
                 subjectContainer.innerHTML = subjects.map((s, i) => `
                     <label class="checkbox-option">
-                        <input type="checkbox" name="subject" value="${s}" ${i === 0 ? 'checked' : ''}>
+                        <input type="checkbox" class="subject-checkbox" data-subject="${s}" ${i === 0 ? 'checked' : ''}>
                         <span>${s}</span>
                     </label>
                 `).join('<div style="height:8px"></div>');
@@ -141,25 +141,60 @@
 
         gradeSelect.addEventListener('change', renderSubjects);
 
+        // إخفاء حقل "المنطقة" لو الحضور أونلاين (مش محتاجينه غير في حالة السنتر)
+        const typeSelect = document.getElementById('typeSelect');
+        const areaGroup = document.getElementById('areaGroup');
+
+        function toggleAreaField() {
+            if (typeSelect.value === 'أونلاين') {
+                areaGroup.style.display = 'none';
+            } else {
+                areaGroup.style.display = '';
+            }
+        }
+        typeSelect.addEventListener('change', toggleAreaField);
+        toggleAreaField(); // تطبيق الحالة الافتراضية عند تحميل الصفحة
+
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyxPlAa14E8UqL0vQ2YtOzLU79EHX7mD5O48aGP_UCpKu_86m3JQR5-fd3Ad9D9K3NR6Q/exec';
         const form = document.getElementById('bookingForm');
         form.addEventListener('submit', e => {
             e.preventDefault();
 
-            const checkedSubjects = form.querySelectorAll('input[name="subject"]:checked, input[type="hidden"][name="subject"]');
             if (!gradeSelect.value) {
                 alert('من فضلك اختر السنة الدراسية');
                 return;
             }
-            if (checkedSubjects.length === 0) {
+
+            // نجمع المواد المختارة (لو فيه checkboxes) في قيمة واحدة نصية
+            // عشان الفورم تفضل بترسل حقل "subject" واحد بس، زي ما كانت أصلاً،
+            // وده مايبوظش الربط مع Google Script / Google Sheet
+            const checkedBoxes = Array.from(form.querySelectorAll('.subject-checkbox:checked'));
+            const hiddenSubject = form.querySelector('input[type="hidden"][name="subject"]');
+
+            let subjectValue = '';
+            if (hiddenSubject) {
+                subjectValue = hiddenSubject.value;
+            } else if (checkedBoxes.length > 0) {
+                subjectValue = checkedBoxes.map(cb => cb.dataset.subject).join('، ');
+            }
+
+            if (!subjectValue) {
                 alert('من فضلك اختر مادة واحدة على الأقل');
                 return;
             }
 
+            const formData = new FormData(form);
+            formData.set('subject', subjectValue); // قيمة واحدة بس، بنفس اسم الحقل الأصلي
+
+            // لو الحضور أونلاين، منبعتش قيمة منطقة (الحقل مخفي وغير مطلوب أصلاً)
+            if (typeSelect.value === 'أونلاين') {
+                formData.set('area', '');
+            }
+
             document.getElementById('submitBtn').innerText = 'جاري الإرسال...';
-            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+            fetch(scriptURL, { method: 'POST', body: formData })
                 .then(() => {
-                    alert('تم بنجاح!');
+                    alert('تم الحجز بنجاح ✅\nمتابعة كل طالب أولويتنا، هنضيفكم لجروب الواتس بتاعنا قريب.');
                     form.reset();
                     renderSubjects();
                     document.getElementById('submitBtn').innerText = 'إرسال طلب الحجز';
