@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <title>حجز الدورات | مهندس محمد مختار</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root { --primary: #7d3f98; --secondary: #007bff; --bg: #050505; --text: #fff; }
+        html, body { height: 100%; }
+        body {
+            background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif;
+            margin: 0; min-height: 100vh; min-height: 100dvh; width: 100%;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .form-container {
+            background: rgba(0,0,0,0.8); padding: 40px; border-radius: 20px;
+            border: 1px solid var(--primary); width: 100%; max-width: 500px;
+        }
+        h2 { text-align: center; color: var(--primary); font-size: 1.4rem; margin-top: 0; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #ccc; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; font-size: 1rem; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+
+        .subject-note {
+            display: block; padding: 12px; border-radius: 8px; border: 1px solid #444;
+            background: #111; color: var(--secondary); font-weight: bold; text-align: center;
+        }
+        .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+        .checkbox-option {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border: 1px solid #444; border-radius: 8px; background: #111; cursor: pointer;
+        }
+        .checkbox-option input { width: auto; margin: 0; accent-color: var(--primary); }
+        .checkbox-option span { color: #fff; }
+
+        @media (max-width: 480px) {
+            body { padding: 12px; align-items: flex-start; }
+            .form-container { padding: 24px 18px; border-radius: 14px; }
+            h2 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>نموذج الحجز لدى المهندس محمد مختار</h2>
+        <form id="bookingForm">
+            <div class="input-group">
+                <label>اسم الطالب ثلاثي</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="input-group">
+                <label>السنة الدراسية</label>
+                <select name="grade" id="gradeSelect" required>
+                    <option value="" disabled selected>اختر السنة الدراسية</option>
+                    <option value="الرابع الابتدائي">الصف الرابع الابتدائي</option>
+                    <option value="الخامس الابتدائي">الصف الخامس الابتدائي</option>
+                    <option value="السادس الابتدائي">الصف السادس الابتدائي</option>
+                    <option value="الأول الإعدادي">الصف الأول الإعدادي</option>
+                    <option value="الثاني الإعدادي">الصف الثاني الإعدادي</option>
+                    <option value="الثالث الإعدادي">الصف الثالث الإعدادي</option>
+                    <option value="الأول الثانوي">الصف الأول الثانوي</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>رقم واتساب ولي الأمر</label>
+                <input type="tel" name="parentPhone" required>
+            </div>
+            <div class="input-group">
+                <label>رقم واتساب الطالب</label>
+                <input type="tel" name="studentPhone">
+            </div>
+            <div class="input-group">
+                <label>المادة</label>
+                <div id="subjectContainer">
+                    <span class="subject-note">اختر السنة الدراسية أولاً</span>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>طريقة الحضور</label>
+                <select name="type">
+                    <option value="أونلاين">أونلاين</option>
+                    <option value="سنتر">سنتر</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>المنطقة</label>
+                <select name="area">
+                    <option value="المندرة">المندرة</option>
+                    <option value="سيدي بشر بحري">سيدي بشر بحري</option>
+                    <option value="أرض فضالي">أرض فضالي</option>
+                    <option value="فيكتوريا">فيكتوريا</option>
+                    <option value="الحضرة">الحضرة</option>
+                </select>
+            </div>
+            <button type="submit" id="submitBtn">إرسال طلب الحجز</button>
+        </form>
+    </div>
+
+    <script>
+        // كل مرحلة دراسية ومعاها المواد المتاحة ليها
+        const gradeSubjects = {
+            'الرابع الابتدائي': ['ICT'],
+            'الخامس الابتدائي': ['ICT'],
+            'السادس الابتدائي': ['ICT'],
+            'الأول الإعدادي': ['ماث', 'ICT'],
+            'الثاني الإعدادي': ['ماث', 'ICT'],
+            'الثالث الإعدادي': ['ICT'],
+            'الأول الثانوي': ['برمجة وذكاء اصطناعي']
+        };
+
+        const gradeSelect = document.getElementById('gradeSelect');
+        const subjectContainer = document.getElementById('subjectContainer');
+
+        function renderSubjects() {
+            const subjects = gradeSubjects[gradeSelect.value];
+            if (!subjects) {
+                subjectContainer.innerHTML = '<span class="subject-note">اختر السنة الدراسية أولاً</span>';
+                return;
+            }
+
+            if (subjects.length === 1) {
+                // مادة واحدة بس متاحة لهذه المرحلة: تتحدد أوتوماتيك وتتقفل
+                subjectContainer.innerHTML = `
+                    <span class="subject-note">${subjects[0]}</span>
+                    <input type="hidden" name="subject" value="${subjects[0]}">
+                `;
+            } else {
+                // أكتر من مادة متاحة: اختيار متعدد بدون تكرار بيانات الطالب
+                subjectContainer.innerHTML = subjects.map((s, i) => `
+                    <label class="checkbox-option">
+                        <input type="checkbox" name="subject" value="${s}" ${i === 0 ? 'checked' : ''}>
+                        <span>${s}</span>
+                    </label>
+                `).join('<div style="height:8px"></div>');
+                subjectContainer.classList.add('checkbox-group');
+            }
+        }
+
+        gradeSelect.addEventListener('change', renderSubjects);
+
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyxPlAa14E8UqL0vQ2YtOzLU79EHX7mD5O48aGP_UCpKu_86m3JQR5-fd3Ad9D9K3NR6Q/exec';
+        const form = document.getElementById('bookingForm');
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+
+            const checkedSubjects = form.querySelectorAll('input[name="subject"]:checked, input[type="hidden"][name="subject"]');
+            if (!gradeSelect.value) {
+                alert('من فضلك اختر السنة الدراسية');
+                return;
+            }
+            if (checkedSubjects.length === 0) {
+                alert('من فضلك اختر مادة واحدة على الأقل');
+                return;
+            }
+
+            document.getElementById('submitBtn').innerText = 'جاري الإرسال...';
+            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+                .then(() => {
+                    alert('تم بنجاح!');
+                    form.reset();
+                    renderSubjects();
+                    document.getElementById('submitBtn').innerText = 'إرسال طلب الحجز';
+                })
+                .catch(err => { alert('خطأ!'); console.error(err); document.getElementById('submitBtn').innerText = 'إرسال طلب الحجز'; });
+        });
+    </script>
+</body>
+</html>
